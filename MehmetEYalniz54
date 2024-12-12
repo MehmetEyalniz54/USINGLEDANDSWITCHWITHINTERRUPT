@@ -1,0 +1,41 @@
+ORG 0H            ; Başlangıç adresi
+    LJMP MAIN         ; Main programına atla
+
+    ORG 0BH           ; INT0 kesmesi vektör adresi
+    LJMP ISR_INT0     ; INT0 kesmesi için kesme rutini
+
+    ORG 30H           ; Verilerin başlama adresi
+MAIN:
+    MOV P1, #0FFH     ; Port 1'deki tüm pinler çıkış, LED3 başta sönük
+    MOV P3, #0FFH     ; Port 3 giriş, butonlar için
+    MOV IE, #10000001B ; INT0 kesmesini aktif et (kesme izni)
+
+LOOP:
+    ; BT5 butonuna basıldığında işlem yap (yoklama ile kontrol)
+    JB P3.5, CHECK    ; Eğer BT5 (P3.5) basılı değilse kontrol et
+    ACALL BLINK_LED   ; Buton basıldığında LED yanıp sönecek
+
+CHECK:
+    SJMP LOOP         ; Sonsuz döngüye geri dön
+
+ISR_INT0: 
+    ACALL BLINK_LED   ; INT0 kesmesi tetiklendiğinde LED yanıp sönsün
+    RETI              ; Kesme bitince geri dön
+
+BLINK_LED:
+    MOV R0, #05H      ; 5 defa yanıp sönecek (bu değeri değiştirebilirsiniz)
+BLINK_LOOP:
+    CPL P1.3          ; LED3'ü tersle (sönükse yak, yanıyorsa söndür)
+    ACALL DELAY       ; Yanıp söndükten sonra bekleme süresi
+    DJNZ R0, BLINK_LOOP ; R0 değeri 0 olana kadar döngü
+    RET               ; İşlem tamam, ana programa geri dön
+
+DELAY:
+    MOV R1, #0FFH     ; Zamanlayıcı için basit bir gecikme döngüsü
+    MOV R2, #0FFH
+DELAY_LOOP:
+    DJNZ R1, DELAY_LOOP
+    DJNZ R2, DELAY_LOOP
+    RET               ; Gecikmeden sonra geri dön
+
+    END               ; Program sonu
